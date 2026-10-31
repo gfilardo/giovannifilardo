@@ -38,7 +38,7 @@ flowchart TD
 
 Consider a ride-booking website. A human understands its interface through labels, maps, prices, and buttons. An agent operating that interface may have to interpret those elements and work out which sequence completes the task.
 
-A structured tool offers another path. The website can describe a capability for obtaining a ride quote, declare its inputs, and provide an implementation that uses application logic. The draft’s [tool definition](https://webmachinelearning.github.io/webmcp/#dictdef-modelcontexttool) makes these pieces concrete: a name, natural-language description, input schema and execution callback, registered through [`registerTool()`](https://webmachinelearning.github.io/webmcp/#dom-modelcontext-registertool).
+A structured tool offers another path. The website can describe a capability for obtaining a ride quote, declare its inputs, and provide an implementation that uses application logic. The draft’s [tool definition](https://webmachinelearning.github.io/webmcp/#dictdef-modelcontexttool) makes these pieces concrete: a name, a description, expected inputs and the application action to perform.
 
 The interesting change is the relationship between the product and its operator. The product can explicitly describe what an agent can do, instead of relying entirely on the agent to infer that from a human interface.
 
@@ -86,11 +86,15 @@ It also says nothing by itself about where the model runs. A browser-based inter
 
 The architectural opportunity is nevertheless substantial. The web already distributes applications at enormous scale. Exposing their capabilities explicitly to agents could make those applications useful through a broader range of interactions.
 
-The [companion repository](https://github.com/gfilardo/gf-blog-examples) contains this series’ local ride-booking simulation in `webmcp-agent-ready-transaction/`. Its README distinguishes native registration from the local tool harness.
-
 A sensible experiment starts with one bounded workflow. Choose something users already find difficult, expose a small set of understandable capabilities, and observe whether assistance improves the outcome.
 
-Then examine what the agent needs to know before it acts. That question leads directly to the next design challenge: what happens when agent shortcuts bypass the safeguards built for people.
+For leadership and product teams, viewing this transition purely as a new distribution channel conceals a significant trap. When an agent shortcut can reach the backend without passing through the visual journey, what happens to the disclosures, price checks, and approval gates carefully built into the human interface?
+
+That question leads directly to the next article: how unaligned agent shortcuts can quietly produce unintentional dark patterns—and why this creates brand, regulatory, and architectural risks that leadership cannot afford to ignore.
+
+## An accompanying example
+
+A [working ride-booking example](https://github.com/gfilardo/gf-blog-examples) accompanies the series. It shows a person and an agent approaching the same booking through different interfaces. The repository’s README links to the example and explains how to run it; no real booking or payment takes place.
 
 ## References and further reading
 
@@ -99,6 +103,5 @@ Then examine what the agent needs to know before it acts. That question leads di
 - [Chrome: When to use WebMCP and MCP](https://developer.chrome.com/docs/ai/webmcp/compare-mcp) — the architectural comparison, page lifecycle and existing application context.
 - [WebMCP tool dictionary](https://webmachinelearning.github.io/webmcp/#dictdef-modelcontexttool) — the actual fields behind the description of structured capabilities.
 - [Chrome: WebMCP tool security](https://developer.chrome.com/docs/ai/webmcp/secure-tools) — guidance to read before exposing a consequential workflow.
-- [Companion repository](https://github.com/gfilardo/gf-blog-examples) — local example directory: `webmcp-agent-ready-transaction/`.
 
 *Documentation checked on 30 October 2026. WebMCP is evolving; specification text, browser implementation and agent-host behavior should be checked separately.*

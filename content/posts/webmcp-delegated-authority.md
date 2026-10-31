@@ -105,9 +105,11 @@ A useful starting point is to identify the smallest scope that enables the desir
 
 For a ride, that might mean authority for one quoted journey or a clearly bounded recurring policy.
 
-The [companion repository](https://github.com/gfilardo/gf-blog-examples) demonstrates an application-recorded approval bound to one offer. It deliberately does not implement portable, independently verifiable authority from an external agent; its README explains that trust limit.
-
 The goal is a reliable connection between the user’s intent and the commitment the system ultimately makes.
+
+## An accompanying example
+
+An [accompanying working example](https://github.com/gfilardo/gf-blog-examples) shows an application checking approval for a specific ride offer. The repository’s README links to the example and its setup instructions. It demonstrates the approval check; it does not establish that an independent agent has trustworthy authority to approve on someone’s behalf.
 
 ## References and further reading
 

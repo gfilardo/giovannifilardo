@@ -19,7 +19,7 @@ A useful way to explore WebMCP is to take one consequential workflow and make it
 
 For this example, the workflow is a ride booking. The user receives an €85 offer, approves it through a trusted path, and asks the application to complete the booking.
 
-The design below is a proposed application architecture. WebMCP exposes the capabilities; the application remains responsible for offers, approval, and execution. A runnable local simulation accompanies this design in the [companion repository](https://github.com/gfilardo/gf-blog-examples), under `webmcp-agent-ready-transaction/`. It demonstrates the domain checks and annotation declarations; it does not establish browser-agent interoperability or prove human presence.
+The design below is a proposed application architecture. WebMCP exposes the capabilities; the application remains responsible for offers, approval, and execution.
 
 ## Start with the offer
 
@@ -52,54 +52,25 @@ A reference to an approval record is not sufficient by itself. The backend must 
 
 An offer identity says what to buy. An approval reference says which recorded decision the application should verify. The tool contract should carry both rather than expose an unexplained commit operation.
 
-The following registration is an illustrative version of the companion’s expanded `book_ride` tool. It is intended for the page, after the application’s offer and approval steps. The approval reference is an opaque lookup identifier, not a boolean assertion of consent or a WebMCP-issued credential.
+The booking request needs only three identifiers to express the relationship:
 
 ```javascript
-// api() is the companion's authenticated, same-origin HTTP helper.
-await document.modelContext.registerTool({
-  name: "book_ride",
-  description:
-    "Commit a ride using approval recorded for this exact offer. " +
-    "Obtain approval through the application's fare-acceptance flow first.",
-  inputSchema: {
-    type: "object",
-    properties: {
-      offerId: {
-        type: "string",
-        description: "Identity of the quoted offer, including its fare and conditions."
-      },
-      approvalId: {
-        type: "string",
-        description: "Reference to application-recorded approval for this offer."
-      },
-      attemptId: {
-        type: "string",
-        description: "Reuse for retries of the same logical booking attempt."
-      }
-    },
-    required: ["offerId", "approvalId", "attemptId"],
-    additionalProperties: false
-  },
-  annotations: {
-    readOnlyHint: false,
-    consequentialHint: true
-  },
-  execute: async ({ offerId, approvalId, attemptId }) =>
-    api("/api/bookings", { offerId, approvalId, attemptId })
-});
+bookRide({ offerId, approvalId, attemptId });
 ```
 
-The [tool dictionary](https://webmachinelearning.github.io/webmcp/#dictdef-modelcontexttool) calls this field `inputSchema`; the annotations belong inside `annotations`. The required approval reference makes the dependency discoverable to an agent and expressible in its call. It cannot prove that the reference is genuine, current or appropriate. Those are server checks. Direct HTTP callers can bypass a tool schema, so the backend must also reject missing or invalid approval.
+The offer identifies the price and conditions. The approval identifies the recorded decision to accept that offer. The attempt identifies this booking request, so retrying it does not create another purchase. This is an illustrative application call, not a WebMCP API method.
 
-There are two ways to carry this dependency. The main tool above passes the approval reference explicitly. The simpler two-lane comparison passes only `offerId` and lets the server look up approval for that account and offer. That lookup variant enforces the rule, but its description and error response must still explain that fare acceptance is required. The explicit variant makes the prerequisite easier to see in the input contract. Neither variant accepts a caller-supplied `accepted: true` as evidence.
+The WebMCP tool definition should declare all three as required inputs and explain that approval must already exist. The [tool dictionary](https://webmachinelearning.github.io/webmcp/#dictdef-modelcontexttool) defines how to describe those inputs. A required field makes the dependency visible; it cannot prove that the supplied approval is genuine or valid. The server must check that independently, including when a caller bypasses the tool altogether.
 
-## Reflect shared application state
+There are two ways to carry this dependency. An explicit request passes the approval reference alongside the offer. A simpler variant passes only the offer identity and lets the server look up approval for that account and offer. That lookup variant enforces the rule, but its description and error response must still explain that fare acceptance is required. The explicit variant makes the prerequisite easier to see in the input contract. Neither variant treats a caller’s claim of acceptance as evidence.
 
-The visible quote and the tool’s offer should come from the same application model, identified by offer identity and version. A callback should resolve the current selection when invoked rather than retain a stale quote captured when a component mounted.
+## Keep the screen and the action in sync
 
-The same applies to constraints: if the page shows a filtered selection, a tool advertised as acting on that selection should use the same filters. If it deliberately searches more broadly, its contract should say so. Sharing the page does not automatically synchronize the callback with its viewmodel.
+The visible quote and the tool’s offer should come from the same application data, identified by the offer and its version. When the agent acts, it should use the current selection rather than an old copy retained when the page first loaded.
 
-In the companion, both lanes refer to the same server-created offer. Starting a fresh comparison replaces the selected offer; changing API mode disables the old controls until a fresh comparison starts. The advanced offer list reads the same domain records used for quote and booking checks. This demonstrates the selected-offer case, not a general reactive-state framework or the flight-filter scenario discussed in Part 2.
+The same applies to constraints: if the page shows a filtered selection, a tool advertised as acting on that selection should use the same filters. If it deliberately searches more broadly, its contract should say so. Sharing the page does not automatically keep those selections aligned.
+
+For the ride, that means a single selected offer shared by the screen and agent action. If a new offer replaces it, both paths must use the new selection. An approval for the old offer must not silently move across to the new one.
 
 Shared frontend state prevents one kind of drift. The backend remains authoritative: it reloads the offer and approval and checks their current validity at commitment. A perfectly synchronized screen can still become stale before its request reaches the service.
 
@@ -173,7 +144,7 @@ The browser-facing tools are adapters to the application workflow. Their declara
 
 They should describe whether a capability retrieves an offer or commits a booking, expose material results, and use appropriate annotations. The domain service should enforce the same rules for human, agent, and other supported entry points.
 
-The annotations help an agent reason about a capability. They do not replace the approval record or execution checks. The draft defines `readOnlyHint`, `untrustedContentHint`, `consequentialHint` and `debugging` under `annotations`. The companion uses the first three for user-facing tools; no tool is mislabeled as debugging merely to exercise the fourth. See the [WebMCP tool annotations](https://webmachinelearning.github.io/webmcp/#dictdef-toolannotations) and [Chrome’s security guidance](https://developer.chrome.com/docs/ai/webmcp/secure-tools).
+The annotations help an agent reason about a capability. They do not replace the approval record or execution checks. The draft defines `readOnlyHint`, `untrustedContentHint`, `consequentialHint` and `debugging` under `annotations`. See the [WebMCP tool annotations](https://webmachinelearning.github.io/webmcp/#dictdef-toolannotations) and [Chrome’s security guidance](https://developer.chrome.com/docs/ai/webmcp/secure-tools).
 
 ## Demonstrate the boundaries
 
@@ -186,21 +157,17 @@ A small prototype becomes persuasive when it shows failure cases as clearly as t
 - A retried request returns the original outcome.
 - A lost response can be reconciled without another purchase.
 
-The companion’s automated tests exercise these domain boundaries, HTTP session isolation and the shared tool callbacks. Native browser-agent behavior remains a manual compatibility check.
-
 These are established transaction-design concerns applied to a new interaction model.
 
 WebMCP makes application capabilities easier for agents to invoke. An agent-ready architecture makes the meaning and authority behind those invocations explicit—and preserves them through to the final commitment.
 
-## Run the companion
+## Explore the working example
 
-In the [sibling examples repository](https://github.com/gfilardo/gf-blog-examples), open `webmcp-agent-ready-transaction/`, run `npm test`, then `npm start`. Visit `http://127.0.0.1:8001`. The README documents setup, scenarios, source references and trust limits.
+An [accompanying working example](https://github.com/gfilardo/gf-blog-examples) puts this architecture into a small ride-booking application. Two lanes compare the human acceptance step with the agent’s direct booking request. A switch selects a flawed service that assumes approval or a corrected one that checks it. Additional controls demonstrate changed fares, expiry, revocation and safe retries.
 
-The page begins with two lanes: what the person sees and what the agent does. The human lane presents an €85 surge warning and requires fare acceptance before enabling booking. The agent lane logs a direct booking tool call. With the flawed API, it books without recorded approval; with the corrected API, it is rejected until approval for that quote exists. Switch APIs and start a fresh comparison to inspect the different outcomes.
+The repository’s README links to the example, full source and setup instructions. The implementation includes the complete WebMCP tool definitions and automated checks, so the article can keep the code brief. All bookings are fictional; no real payment or AI model is involved. Native browser-agent compatibility remains a separate manual check.
 
-These paths call actual local HTTP routes and the same callbacks used for native tool registration. No model or real payment is involved. The implementation details are collapsed beneath the comparison, including read-only and untrusted-content annotation examples, offer expiry, changed fares, revocation and retry handling. Both booking adapters retain the consequential-action hint, so readers can distinguish metadata from API enforcement.
-
-The application records approvals separately from booking. Its same-origin approval endpoint is not proof of a human gesture: a browser agent with page privileges could still invoke it. The example deliberately exposes this unresolved trust boundary instead of claiming a consent screen or CSRF token solves delegated authority. [OWASP’s CSRF guidance](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html) describes tokens and origin checks as defenses against cross-site requests; those controls do not establish human presence. The browser-agent implication is a trust analysis of this example, rather than a new guarantee in that guidance.
+The example records approval in the application, but that does not prove that a human rather than browser automation created it. Request-origin checks address a different problem, as described in [OWASP’s CSRF guidance](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html). A deployment that needs stronger assurance must establish a trustworthy approval mechanism as well as enforce its records.
 
 ## References and further reading
 
@@ -210,6 +177,5 @@ The application records approvals separately from booking. Its same-origin appro
 - [OWASP: Transaction Authorization](https://cheatsheetseries.owasp.org/cheatsheets/Transaction_Authorization_Cheat_Sheet.html) — server-side enforcement and binding approval to transaction data.
 - [Amazon Builders’ Library: Making retries safe with idempotent APIs](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/) — caller request identifiers, atomicity and changed-input handling.
 - [OWASP: CSRF Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html) — what request-origin defenses address, distinct from proof of user approval.
-- [Companion repository](https://github.com/gfilardo/gf-blog-examples) — run instructions and trust limits in `webmcp-agent-ready-transaction/README.md`; tool declarations in `public/tools.mjs`, enforcement in `domain.mjs`, checks in `example.test.mjs`.
 
 *Documentation checked on 30 October 2026. WebMCP is evolving; specification text, browser implementation and agent-host behavior should be checked separately.*
