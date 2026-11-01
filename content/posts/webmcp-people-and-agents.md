@@ -1,7 +1,7 @@
 ---
 title: "WebMCP: Your website now has two audiences, people and agents"
 slug: webmcp-people-and-agents
-date: "2026-10-30"
+date: "2026-10-29"
 description: "What WebMCP adds to the web as an application platform, how it compares with MCP, and where to begin experimenting."
 tags:
   - WebMCP

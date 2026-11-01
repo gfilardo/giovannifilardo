@@ -1,7 +1,7 @@
 ---
 title: "WebMCP: Building an agent-ready transaction"
 slug: webmcp-agent-ready-transaction
-date: "2026-10-30"
+date: "2026-11-01"
 description: "A proposed quote, approval, and booking architecture that preserves user authority through execution."
 tags:
   - WebMCP
@@ -52,15 +52,36 @@ A reference to an approval record is not sufficient by itself. The backend must 
 
 An offer identity says what to buy. An approval reference says which recorded decision the application should verify. The tool contract should carry both rather than expose an unexplained commit operation.
 
-The booking request needs only three identifiers to express the relationship:
+The booking request needs only three identifiers to express that relationship:
+
+- **Offer identity (`offerId`):** Connects the commitment to the specific price and conditions.
+- **Approval reference (`approvalId`):** Identifies the recorded decision to accept that offer.
+- **Attempt identity (`attemptId`):** Scopes this booking request, so retrying it does not create another purchase.
+
+The page registers this capability using WebMCP’s [`registerTool()`](https://webmachinelearning.github.io/webmcp/#dom-modelcontext-registertool) API, declaring all three as required parameters:
 
 ```javascript
-bookRide({ offerId, approvalId, attemptId });
+await document.modelContext.registerTool({
+  name: "book_ride",
+  description: "Commits a ride with prior recorded approval. Never creates approval.",
+  annotations: { readOnlyHint: false, consequentialHint: true },
+  inputSchema: {
+    type: "object",
+    properties: {
+      offerId: { type: "string", description: "The quoted ride offer to book" },
+      approvalId: { type: "string", description: "Reference to the recorded fare approval" },
+      attemptId: { type: "string", description: "Idempotency key for safe retries" }
+    },
+    required: ["offerId", "approvalId", "attemptId"],
+    additionalProperties: false
+  },
+  execute: async ({ offerId, approvalId, attemptId }) => {
+    return await api("/api/bookings", { offerId, approvalId, attemptId });
+  }
+});
 ```
 
-The offer identifies the price and conditions. The approval identifies the recorded decision to accept that offer. The attempt identifies this booking request, so retrying it does not create another purchase. This is an illustrative application call, not a WebMCP API method.
-
-The WebMCP tool definition should declare all three as required inputs and explain that approval must already exist. The [tool dictionary](https://webmachinelearning.github.io/webmcp/#dictdef-modelcontexttool) defines how to describe those inputs. A required field makes the dependency visible; it cannot prove that the supplied approval is genuine or valid. The server must check that independently, including when a caller bypasses the tool altogether.
+The schema and the `consequentialHint` annotation make the prerequisites visible to the agent host. A required input schema cannot prove that the supplied approval is genuine or valid; the server must verify the record independently, including when a caller bypasses the tool altogether.
 
 There are two ways to carry this dependency. An explicit request passes the approval reference alongside the offer. A simpler variant passes only the offer identity and lets the server look up approval for that account and offer. That lookup variant enforces the rule, but its description and error response must still explain that fare acceptance is required. The explicit variant makes the prerequisite easier to see in the input contract. Neither variant treats a caller’s claim of acceptance as evidence.
 
