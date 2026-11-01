@@ -17,9 +17,11 @@ export function indexSeries(documents, includeDrafts = false) {
   for (const group of groups.values()) {
     const entries = [...group.parts.values()].sort((a, b) => a.part - b.part)
       .map(({ source, ...entry }) => entry);
+    // A gap means the full sequence is not yet defined; show only the part number.
+    const total = entries.every((entry, index) => entry.part === index + 1) ? entries.length : null;
     const published = entries.filter(entry => entry.url);
     published.forEach((entry, index) => {
-      byRoute.set(entry.route, { title: group.title, entries,
+      byRoute.set(entry.route, { title: group.title, entries, total,
         previous: published[index - 1] ?? null, next: published[index + 1] ?? null });
     });
   }

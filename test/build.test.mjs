@@ -177,11 +177,13 @@ test('series lists ordered parts, exposes only draft titles and links published 
     assert.ok(!String(contents).includes('/posts/upcoming/'));
   }
   for (const name of ['index.html', 'feed.xml', 'sitemap.xml']) assert.ok(!String(files.get(name)).includes('upcoming'));
+  assert.match(files.get('index.html'), /<p class="article-series">Architecture &amp; trade-offs · Part 3 of 4<\/p>/);
   assert.ok(!files.get('posts/hello-world/index.html').includes('class="series-nav"'));
   assert.ok(!files.get('posts/first/index.html').includes('rel="prev"'));
   assert.ok(!files.get('posts/last/index.html').includes('rel="next"'));
   await writeFile(path.join(dir, 'content/posts/upcoming.md'), seriesArticle('upcoming', 2));
   const promoted = await build(dir, { basePath: '/blog' });
+  assert.match(promoted.get('index.html'), /<p class="article-series">Architecture &amp; trade-offs · Part 3 of 4<\/p>/);
   assert.match(promoted.get('posts/middle/index.html'), /rel="prev" href="\/blog\/posts\/upcoming\/"/);
   assert.ok(!promoted.get('posts/middle/index.html').includes('Coming soon'));
 });
@@ -191,6 +193,7 @@ test('series conflicts fail safely, including draft conflicts; gaps and single p
   await writeFile(path.join(dir, 'content/posts/one.md'), seriesArticle('one', 3));
   const first = await build(dir);
   assert.match(first.get('posts/one/index.html'), /Part 3 of the series/);
+  assert.match(first.get('index.html'), /<p class="article-series">Architecture &amp; trade-offs · Part 3<\/p>/);
   assert.ok(!first.get('posts/one/index.html').includes('class="series-pagination"'));
   await writeFile(path.join(dir, 'content/posts/two.md'), seriesArticle('two', 3, true));
   await assert.rejects(build(dir), /two.md: duplicate part 3/);

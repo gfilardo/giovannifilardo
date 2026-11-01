@@ -50,6 +50,10 @@ export function render(root, site, documents) {
     const context = { site, artwork, navigation, home: local('/'), favicon: local('/favicon.svg'), stylesheet: local('/css/style.css'), feed: local('/feed.xml'), page: { seriesNav: (page.preview ? previewSeriesByRoute : seriesByRoute).get(page.route) ?? null, previewIndex: local('/preview/'), preview: false, companion: null, date: null, updated: null, body: '', tags: [], noindex: false, ...page, canonical: absolute(page.route), tagLinks: (page.tags && page.kind ? page.tags : []).map(name => ({ name: tagLabel(name), url: local(`/tags/${tagSlug(name)}/`) })) } };
     // Standalone page tags are accepted as metadata; only articles join tag archives.
     if (page.kind === 'page' || page.preview) context.page.tagLinks = [];
+    if (page.posts) {
+      const seriesIndex = page.preview ? previewSeriesByRoute : seriesByRoute;
+      context.page.posts = page.posts.map(post => ({ ...post, seriesNav: seriesIndex.get(post.route) ?? null }));
+    }
     add(page.route.endsWith('/') ? `${page.route.slice(1)}index.html` : page.route.slice(1), env.render(page.template, context));
   }
   add('.nojekyll', '');

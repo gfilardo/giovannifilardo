@@ -32,6 +32,7 @@ h1 { font-size: clamp(42px, 5.7vw, 72px); font-weight: 550; letter-spacing: -.05
 .article-summary h3 { font-size: 28px; font-weight: 550; letter-spacing: -.7px; margin-bottom: 12px; }
 .article-summary h3 a { display: flex; justify-content: space-between; gap: 20px; text-decoration: none; }
 .article-summary p { color: var(--muted); font-size: 14px; margin-bottom: 0; max-width: 620px; }
+.article-summary .article-series { margin-top: 10px; font-size: 12px; }
 .site-footer { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 32px; padding: 29px 0 36px; border-top: 1px solid var(--line); }
 .footer-brand { font-size: 12px; font-weight: 650; text-decoration: none; }
 .site-footer p { margin: 7px 0 0; font-size: 11px; color: var(--muted); }
